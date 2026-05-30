@@ -10,6 +10,10 @@ class Music {
   final int? playCount;
   final int? uploadUserId;
   final String? createdAt;
+  // 每日推荐相关字段（仅日推接口返回时存在）
+  final double? score;
+  final String? source;
+  final String? reason;
 
   Music({
     required this.id,
@@ -23,11 +27,15 @@ class Music {
     this.playCount,
     this.uploadUserId,
     this.createdAt,
+    this.score,
+    this.source,
+    this.reason,
   });
 
   factory Music.fromJson(Map<String, dynamic> json) {
     return Music(
-      id: json['id'] as int,
+      // 兼容音乐接口的 id 与每日推荐接口的 musicId
+      id: (json['id'] ?? json['musicId']) as int,
       title: json['title'] as String,
       artist: json['artist'] as String,
       album: json['album'] as String?,
@@ -38,6 +46,9 @@ class Music {
       playCount: json['playCount'] as int?,
       uploadUserId: json['uploadUserId'] as int?,
       createdAt: json['createdAt']?.toString(),
+      score: (json['score'] as num?)?.toDouble(),
+      source: json['source'] as String?,
+      reason: json['reason'] as String?,
     );
   }
 
