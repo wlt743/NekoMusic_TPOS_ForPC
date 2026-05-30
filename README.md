@@ -143,13 +143,22 @@ neko_music/
 
 ## 注意事项
 
-1. 使用本 API 需遵守原项目 LICENSE 协议
-2. 必须开源并保留 Neko云音乐 署名及源码链接
+1. 使用本 API 需遵守 [Neko云音乐 API 文档](https://github.com/FantasyNetworkCN/NekoMusicDocs) 规定的 AGPL 协议
+2. 必须开源并保留 Neko云音乐 署名及源码链接，衍生作品须以相同的 AGPL 协议发布
 3. Token 有效期为 30 天
 
 ## 许可证
 
-MIT License
+本项目依据 [Neko云音乐 API 文档](https://github.com/FantasyNetworkCN/NekoMusicDocs) 的规定，采用 **GNU Affero General Public License v3.0 (AGPL-3.0)** 开源协议发布。
+
+这意味着你可以自由地使用、修改和分发本软件，但：
+
+- 任何基于本项目的衍生作品也必须以 AGPL-3.0 协议开源
+- 必须保留原始版权声明、Neko云音乐 署名及源码链接
+- 若通过网络向用户提供本软件（或其修改版）的服务，必须向这些用户公开对应的源代码
+- 不提供任何形式的担保
+
+完整协议内容详见 [LICENSE](LICENSE) 文件。
 
 ## 联系方式
 

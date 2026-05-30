@@ -92,7 +92,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
       
       // 卡片
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -193,7 +193,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
       
       // 对话框
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
