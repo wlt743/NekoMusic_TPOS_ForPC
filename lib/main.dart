@@ -12,12 +12,21 @@ import 'providers/player_provider.dart';
 import 'providers/user_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'widgets/lyrics_window.dart';
 
 // 桌面平台窗口管理
 import 'package:window_manager/window_manager.dart';
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 独立桌面歌词子窗口入口：由主窗口通过 DesktopMultiWindow.createWindow 启动
+  if (args.isNotEmpty && args.first == 'multi_window') {
+    final windowId = int.parse(args[1]);
+    runApp(LyricsWindowApp(windowId: windowId));
+    return;
+  }
   
   // 初始化 Hive
   await Hive.initFlutter();

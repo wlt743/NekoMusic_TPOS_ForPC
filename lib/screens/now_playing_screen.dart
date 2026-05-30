@@ -29,33 +29,39 @@ class NowPlayingScreen extends StatelessWidget {
           );
         }
         
-        // macOS 隐藏了原生标题栏，红绿灯位于左上角，需为返回按钮留出空间
+        // macOS 隐藏了原生标题栏，红绿灯位于左上角顶部约 28px 区域，
+        // 需把工具栏整体下移，避免返回按钮与红绿灯重合/误触
         final isMacOS = Platform.isMacOS;
+        const macTrafficLightHeight = 28.0;
         return Scaffold(
           extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            toolbarHeight: isMacOS ? 56 : kToolbarHeight,
-            leadingWidth: isMacOS ? 96 : null,
-            leading: Padding(
-              padding: EdgeInsets.only(left: isMacOS ? 72 : 0),
-              child: IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.keyboard_arrow_down, size: 32),
+          appBar: PreferredSize(
+            preferredSize: Size.fromHeight(
+              isMacOS ? kToolbarHeight + macTrafficLightHeight : kToolbarHeight,
+            ),
+            child: Padding(
+              // 顶部留出红绿灯高度，使整条工具栏下移到红绿灯之下
+              padding: EdgeInsets.only(top: isMacOS ? macTrafficLightHeight : 0),
+              child: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.keyboard_arrow_down, size: 32),
+                ),
+                actions: [
+                  Padding(
+                    padding: EdgeInsets.only(right: isMacOS ? 12 : 0),
+                    child: IconButton(
+                      onPressed: () {
+                        _showMoreOptions(context, playerProvider);
+                      },
+                      icon: const Icon(Icons.more_vert),
+                    ),
+                  ),
+                ],
               ),
             ),
-            actions: [
-              Padding(
-                padding: EdgeInsets.only(right: isMacOS ? 12 : 0),
-                child: IconButton(
-                  onPressed: () {
-                    _showMoreOptions(context, playerProvider);
-                  },
-                  icon: const Icon(Icons.more_vert),
-                ),
-              ),
-            ],
           ),
           body: Container(
             decoration: BoxDecoration(
