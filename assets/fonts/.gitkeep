@@ -1,0 +1,10 @@
+# 此文件夹用于存放字体文件
+# 请下载 NotoSansSC 字体并放置于此
+# 下载地址: https://fonts.google.com/noto/specimen/Noto+Sans+SC
+# 
+# 需要的字体文件:
+# - NotoSansSC-Regular.otf
+# - NotoSansSC-Medium.otf
+# - NotoSansSC-Bold.otf
+#
+# 或者可以移除 pubspec.yaml 中的字体配置，使用系统默认字体
