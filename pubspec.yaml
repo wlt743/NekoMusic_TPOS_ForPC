@@ -1,0 +1,57 @@
+name: neko_music
+description: Neko云音乐客户端 - 轻量、自定义主题、桌面歌词
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # HTTP 请求
+  dio: ^5.4.0
+  
+  # 状态管理
+  provider: ^6.1.1
+  
+  # 音频播放
+  just_audio: ^0.9.36
+  audio_service: ^0.18.12
+  
+  # 本地存储
+  shared_preferences: ^2.2.2
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
+  # UI 组件
+  cached_network_image: ^3.3.1
+  flutter_svg: ^2.0.9
+  shimmer: ^3.0.0
+  
+  # 桌面窗口管理 (macOS)
+  window_manager: ^0.3.7
+  screen_retriever: ^0.1.9
+  
+  # 歌词解析
+  
+  # 工具
+  path_provider: ^2.1.2
+  url_launcher: ^6.2.2
+  
+  # 图标
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.8
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
