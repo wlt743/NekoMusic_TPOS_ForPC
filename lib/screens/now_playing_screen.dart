@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
 
 import '../providers/player_provider.dart';
 import '../services/audio_service.dart';
@@ -28,21 +29,31 @@ class NowPlayingScreen extends StatelessWidget {
           );
         }
         
+        // macOS 隐藏了原生标题栏，红绿灯位于左上角，需为返回按钮留出空间
+        final isMacOS = Platform.isMacOS;
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            leading: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.keyboard_arrow_down, size: 32),
+            toolbarHeight: isMacOS ? 56 : kToolbarHeight,
+            leadingWidth: isMacOS ? 96 : null,
+            leading: Padding(
+              padding: EdgeInsets.only(left: isMacOS ? 72 : 0),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.keyboard_arrow_down, size: 32),
+              ),
             ),
             actions: [
-              IconButton(
-                onPressed: () {
-                  _showMoreOptions(context, playerProvider);
-                },
-                icon: const Icon(Icons.more_vert),
+              Padding(
+                padding: EdgeInsets.only(right: isMacOS ? 12 : 0),
+                child: IconButton(
+                  onPressed: () {
+                    _showMoreOptions(context, playerProvider);
+                  },
+                  icon: const Icon(Icons.more_vert),
+                ),
               ),
             ],
           ),

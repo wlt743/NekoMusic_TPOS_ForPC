@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:io';
@@ -53,6 +54,18 @@ void main() async {
   runApp(const NekoMusicApp());
 }
 
+/// 自定义滚动行为：允许鼠标、触控板拖动滚动（桌面端横向列表需要）
+class AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.unknown,
+      };
+}
+
 class NekoMusicApp extends StatelessWidget {
   const NekoMusicApp({super.key});
 
@@ -71,6 +84,7 @@ class NekoMusicApp extends StatelessWidget {
           return MaterialApp(
             title: 'Neko云音乐',
             debugShowCheckedModeBanner: false,
+            scrollBehavior: AppScrollBehavior(),
             theme: themeProvider.lightTheme,
             darkTheme: themeProvider.darkTheme,
             themeMode: themeProvider.themeMode,
