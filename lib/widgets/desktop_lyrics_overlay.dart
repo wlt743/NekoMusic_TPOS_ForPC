@@ -61,7 +61,15 @@ class _DesktopLyricsOverlayState extends State<DesktopLyricsOverlay> {
               onPanEnd: (_) => setState(() => _isDragging = false),
               onPanUpdate: (details) {
                 setState(() {
-                  _position += details.delta;
+                  final screen = MediaQuery.of(context).size;
+                  const overlayWidth = 600.0;
+                  // 估算歌词窗高度，约束在窗口可视范围内，避免拖出后被裁切隐藏
+                  const overlayHeight = 120.0;
+                  final next = _position + details.delta;
+                  _position = Offset(
+                    next.dx.clamp(0.0, (screen.width - overlayWidth).clamp(0.0, double.infinity)),
+                    next.dy.clamp(0.0, (screen.height - overlayHeight).clamp(0.0, double.infinity)),
+                  );
                 });
               },
               child: AnimatedContainer(

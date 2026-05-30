@@ -20,14 +20,18 @@ class ProfilePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('我的'),
         actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-            icon: const Icon(Icons.settings),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+              icon: const Icon(Icons.settings),
+              tooltip: '设置',
+            ),
           ),
         ],
       ),

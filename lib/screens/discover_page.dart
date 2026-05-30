@@ -81,9 +81,13 @@ class _DiscoverPageState extends State<DiscoverPage> {
               floating: true,
               title: const Text('发现音乐'),
               actions: [
-                IconButton(
-                  onPressed: _loadData,
-                  icon: const Icon(Icons.refresh),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: IconButton(
+                    onPressed: _loadData,
+                    icon: const Icon(Icons.refresh),
+                    tooltip: '刷新',
+                  ),
                 ),
               ],
             ),
