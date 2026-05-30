@@ -82,7 +82,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.code),
             title: const Text('开源协议'),
-            subtitle: const Text('MIT License'),
+            subtitle: const Text('AGPL-3.0 License'),
             onTap: () => _showLicenseDialog(context),
           ),
           ListTile(
@@ -337,15 +337,23 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('开源协议'),
         content: const SingleChildScrollView(
           child: Text('''
-MIT License
+GNU Affero General Public License v3.0 (AGPL-3.0)
 
-Copyright (c) 2024 Neko云音乐
+Copyright (C) 2024 Neko云音乐
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+本程序是自由软件：你可以遵照自由软件基金会发布的 GNU Affero 通用公共许可证（AGPL）第 3 版或（由你选择）任何后续版本的条款，重新发布和/或修改它。
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+发布本程序是希望它能有用，但不附带任何担保；甚至不包含适销性或针对特定用途的适用性的默示担保。详见 GNU Affero 通用公共许可证。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+特别地，根据 AGPL 第 13 条：如果你修改本程序并通过计算机网络向用户提供交互式服务，你必须向这些用户提供获取对应修改后源代码的途径。
+
+你应当已随本程序收到一份 GNU Affero 通用公共许可证的副本。如果没有，请参阅 <https://www.gnu.org/licenses/>。
+
+---
+
+本项目基于 Neko云音乐 API 开发，依据其 API 文档规定采用 AGPL-3.0 协议开源。
+API 文档: https://github.com/FantasyNetworkCN/NekoMusicDocs
+源码地址: https://github.com/bilibilicraft/NekoMusicAndroid_Macos
           '''),
         ),
         actions: [
