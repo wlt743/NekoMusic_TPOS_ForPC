@@ -6,9 +6,9 @@ import '../providers/player_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
+import '../services/lyrics_window_manager.dart';
 import '../models/music.dart';
 import '../widgets/player_bar.dart';
-import '../widgets/desktop_lyrics_overlay.dart';
 import 'discover_page.dart';
 import 'search_page.dart';
 import 'library_page.dart';
@@ -24,6 +24,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+
+  // 独立桌面歌词窗口管理（仅桌面平台）
+  LyricsWindowManager? _lyricsWindowManager;
+  PlayerProvider? _player;
+  bool _lastShowLyrics = false;
   
   final List<Widget> _pages = const [
     DiscoverPage(),
@@ -32,10 +37,47 @@ class _HomeScreenState extends State<HomeScreen> {
     ProfilePage(),
   ];
 
+  bool get _isDesktop =>
+      Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+
   @override
   void initState() {
     super.initState();
     _initializeUser();
+
+    // 桌面平台：监听桌面歌词开关，控制独立歌词窗口
+    if (_isDesktop) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _player = context.read<PlayerProvider>();
+        _lyricsWindowManager = LyricsWindowManager(_player!);
+        _lastShowLyrics = _player!.showDesktopLyrics;
+        _player!.addListener(_syncLyricsWindow);
+        if (_lastShowLyrics) {
+          _lyricsWindowManager!.open();
+        }
+      });
+    }
+  }
+
+  void _syncLyricsWindow() {
+    final player = _player;
+    final manager = _lyricsWindowManager;
+    if (player == null || manager == null) return;
+    final show = player.showDesktopLyrics;
+    if (show == _lastShowLyrics) return;
+    _lastShowLyrics = show;
+    if (show) {
+      manager.open();
+    } else {
+      manager.close();
+    }
+  }
+
+  @override
+  void dispose() {
+    _player?.removeListener(_syncLyricsWindow);
+    _lyricsWindowManager?.close();
+    super.dispose();
   }
 
   Future<void> _initializeUser() async {
@@ -46,21 +88,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-    
-    return Consumer<PlayerProvider>(
-      builder: (context, playerProvider, child) {
-        return Stack(
-          children: [
-            Scaffold(
-              body: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
-            ),
-            // 桌面歌词悬浮窗（仅桌面平台）
-            if (isDesktop && playerProvider.showDesktopLyrics)
-              const DesktopLyricsOverlay(),
-          ],
-        );
-      },
+    return Scaffold(
+      body: _isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
     );
   }
 

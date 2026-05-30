@@ -33,6 +33,8 @@ dependencies:
   # 桌面窗口管理 (macOS)
   window_manager: ^0.3.7
   screen_retriever: ^0.1.9
+  # 多窗口支持（独立桌面歌词窗口）
+  desktop_multi_window: ^0.2.0
   
   # 歌词解析
   
