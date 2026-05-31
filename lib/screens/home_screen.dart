@@ -4,10 +4,8 @@ import 'dart:io';
 
 import '../providers/player_provider.dart';
 import '../providers/user_provider.dart';
-import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
 import '../services/lyrics_window_manager.dart';
-import '../models/music.dart';
 import '../widgets/player_bar.dart';
 import 'discover_page.dart';
 import 'search_page.dart';
@@ -446,22 +444,53 @@ class DesktopMiniPlayer extends StatelessWidget {
               
               const SizedBox(height: 4),
               
-              // 桌面歌词开关
-              TextButton.icon(
-                onPressed: playerProvider.toggleDesktopLyrics,
-                icon: Icon(
-                  playerProvider.showDesktopLyrics 
-                      ? Icons.lyrics 
-                      : Icons.lyrics_outlined,
-                  size: 16,
-                ),
-                label: Text(
-                  playerProvider.showDesktopLyrics ? '关闭桌面歌词' : '桌面歌词',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
+              // 桌面歌词开关 + 样式入口
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: TextButton.icon(
+                      onPressed: playerProvider.toggleDesktopLyrics,
+                      icon: Icon(
+                        playerProvider.showDesktopLyrics
+                            ? Icons.lyrics
+                            : Icons.lyrics_outlined,
+                        size: 16,
+                      ),
+                      label: Text(
+                        playerProvider.showDesktopLyrics ? '关闭桌面歌词' : '桌面歌词',
+                        style: const TextStyle(fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () =>
+                        _showDesktopLyricStyleSheet(context, playerProvider),
+                    icon: const Icon(Icons.palette_outlined, size: 18),
+                    tooltip: '桌面歌词样式',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  IconButton(
+                    onPressed: playerProvider.toggleLyricsClickThrough,
+                    icon: Icon(
+                      playerProvider.lyricsClickThrough
+                          ? Icons.touch_app_outlined
+                          : Icons.pan_tool,
+                      size: 18,
+                    ),
+                    tooltip: playerProvider.lyricsClickThrough
+                        ? '歌词穿透中(点击可拖动)'
+                        : '歌词可拖动(点击恢复穿透)',
+                    color: playerProvider.lyricsClickThrough
+                        ? null
+                        : Theme.of(context).colorScheme.primary,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
               ),
             ],
           ),
@@ -469,4 +498,201 @@ class DesktopMiniPlayer extends StatelessWidget {
       },
     );
   }
+}
+
+// 桌面歌词样式调节面板（颜色、透明度、圆角、字号）
+void _showDesktopLyricStyleSheet(
+    BuildContext context, PlayerProvider playerProvider) {
+  final colors = <Color>[
+    Colors.white,
+    const Color(0xFFFF6B9D),
+    const Color(0xFF6C5CE7),
+    const Color(0xFF00B894),
+    const Color(0xFF0984E3),
+    const Color(0xFFFDCB6E),
+    const Color(0xFFE17055),
+    const Color(0xFF00CEC9),
+    Colors.black,
+  ];
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          return SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Center(
+                      child: Text(
+                        '桌面歌词样式',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black
+                            .withOpacity(playerProvider.lyricBackgroundOpacity),
+                        borderRadius: BorderRadius.circular(
+                          playerProvider.lyricCornerRadius,
+                        ),
+                      ),
+                      child: Text(
+                        '歌词预览 ♪',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: playerProvider.lyricColor,
+                          fontSize: playerProvider.lyricFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('文字颜色',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: colors.map((color) {
+                        final isSelected =
+                            playerProvider.lyricColor.value == color.value;
+                        return GestureDetector(
+                          onTap: () {
+                            playerProvider.setLyricColor(color);
+                            setSheetState(() {});
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.grey.withOpacity(0.4),
+                                width: isSelected ? 3 : 1,
+                              ),
+                            ),
+                            child: isSelected
+                                ? Icon(
+                                    Icons.check,
+                                    size: 20,
+                                    color: color == Colors.white
+                                        ? Colors.black
+                                        : Colors.white,
+                                  )
+                                : null,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Text('背景透明度',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        Text(
+                          '${(playerProvider.lyricBackgroundOpacity * 100).round()}%',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: playerProvider.lyricBackgroundOpacity,
+                      min: 0.0,
+                      max: 1.0,
+                      divisions: 20,
+                      onChanged: (value) {
+                        playerProvider.setLyricBackgroundOpacity(value);
+                        setSheetState(() {});
+                      },
+                    ),
+                    Row(
+                      children: [
+                        const Text('圆角',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        Text(
+                          '${playerProvider.lyricCornerRadius.round()}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: playerProvider.lyricCornerRadius,
+                      min: 0.0,
+                      max: 40.0,
+                      divisions: 40,
+                      onChanged: (value) {
+                        playerProvider.setLyricCornerRadius(value);
+                        setSheetState(() {});
+                      },
+                    ),
+                    Row(
+                      children: [
+                        const Text('字号',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        Text(
+                          '${playerProvider.lyricFontSize.round()}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: playerProvider.lyricFontSize,
+                      min: 12.0,
+                      max: 48.0,
+                      divisions: 36,
+                      onChanged: (value) {
+                        playerProvider.setLyricFontSize(value);
+                        setSheetState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          playerProvider.setLyricColor(Colors.white);
+                          playerProvider.setLyricBackgroundOpacity(0.7);
+                          playerProvider.setLyricCornerRadius(16);
+                          playerProvider.setLyricFontSize(24);
+                          setSheetState(() {});
+                        },
+                        child: const Text('恢复默认'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
 }
