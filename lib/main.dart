@@ -17,6 +17,8 @@ import 'widgets/lyrics_window.dart';
 // 桌面平台窗口管理
 import 'package:window_manager/window_manager.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
+// Linux/Windows 音频后端（just_audio 无官方桌面实现）
+import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +30,14 @@ void main(List<String> args) async {
     return;
   }
   
+  // Linux/Windows 平台注册 media_kit 作为 just_audio 后端
+  if (Platform.isLinux || Platform.isWindows) {
+    JustAudioMediaKit.ensureInitialized(
+      linux: true,
+      windows: true,
+    );
+  }
+
   // 初始化 Hive
   await Hive.initFlutter();
   await Hive.openBox('settings');
