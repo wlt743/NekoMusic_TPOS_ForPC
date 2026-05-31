@@ -7,6 +7,7 @@ import '../models/playlist.dart';
 import '../providers/player_provider.dart';
 import '../providers/user_provider.dart';
 import '../widgets/music_list_tile.dart';
+import '../widgets/netease_import_dialog.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -205,16 +206,27 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
     
     return Column(
       children: [
-        // 创建歌单按钮
+        // 创建歌单 / 导入网易云歌单按钮
         Padding(
           padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _showCreatePlaylistDialog,
-              icon: const Icon(Icons.add),
-              label: const Text('创建歌单'),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _showCreatePlaylistDialog,
+                  icon: const Icon(Icons.add),
+                  label: const Text('创建歌单'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: _showNeteaseImportDialog,
+                  icon: const Icon(Icons.cloud_download),
+                  label: const Text('导入网易云'),
+                ),
+              ),
+            ],
           ),
         ),
         
@@ -528,6 +540,13 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
           );
         }
       }
+    }
+  }
+
+  Future<void> _showNeteaseImportDialog() async {
+    final imported = await NeteaseImportDialog.show(context);
+    if (imported) {
+      _loadData();
     }
   }
 

@@ -10,7 +10,6 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final themeProvider = context.watch<ThemeProvider>();
     final playerProvider = context.watch<PlayerProvider>();
     
@@ -58,6 +57,31 @@ class SettingsScreen extends StatelessWidget {
             value: playerProvider.showDesktopLyrics,
             onChanged: (value) {
               playerProvider.setShowDesktopLyrics(value);
+            },
+          ),
+          // 桌面歌词样式自定义
+          ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('桌面歌词样式'),
+            subtitle: const Text('颜色、透明度、圆角、字号'),
+            onTap: () => _showLyricStyleSheet(context, playerProvider),
+          ),
+          // 桌面歌词点击穿透开关
+          SwitchListTile(
+            secondary: Icon(
+              playerProvider.lyricsClickThrough
+                  ? Icons.touch_app_outlined
+                  : Icons.pan_tool_outlined,
+            ),
+            title: const Text('歌词点击穿透'),
+            subtitle: Text(
+              playerProvider.lyricsClickThrough
+                  ? '开启：鼠标穿透，不挡其他程序点击'
+                  : '关闭：可拖动歌词、可点击控制',
+            ),
+            value: playerProvider.lyricsClickThrough,
+            onChanged: (value) {
+              playerProvider.setLyricsClickThrough(value);
             },
           ),
           const Divider(),
@@ -328,6 +352,213 @@ class SettingsScreen extends StatelessWidget {
         }
       }
     }
+  }
+
+  void _showLyricStyleSheet(BuildContext context, PlayerProvider playerProvider) {
+    // 可选颜色（含白色与主题预设色）
+    final colors = <Color>[
+      Colors.white,
+      const Color(0xFFFF6B9D),
+      const Color(0xFF6C5CE7),
+      const Color(0xFF00B894),
+      const Color(0xFF0984E3),
+      const Color(0xFFFDCB6E),
+      const Color(0xFFE17055),
+      const Color(0xFF00CEC9),
+      Colors.black,
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Center(
+                        child: Text(
+                          '桌面歌词样式',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 实时预览
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black
+                              .withOpacity(playerProvider.lyricBackgroundOpacity),
+                          borderRadius: BorderRadius.circular(
+                            playerProvider.lyricCornerRadius,
+                          ),
+                        ),
+                        child: Text(
+                          '歌词预览 ♪',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: playerProvider.lyricColor,
+                            fontSize: playerProvider.lyricFontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // 文字颜色
+                      const Text('文字颜色',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: colors.map((color) {
+                          final isSelected =
+                              playerProvider.lyricColor.value == color.value;
+                          return GestureDetector(
+                            onTap: () {
+                              playerProvider.setLyricColor(color);
+                              setSheetState(() {});
+                            },
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.grey.withOpacity(0.4),
+                                  width: isSelected ? 3 : 1,
+                                ),
+                              ),
+                              child: isSelected
+                                  ? Icon(
+                                      Icons.check,
+                                      size: 20,
+                                      color: color == Colors.white
+                                          ? Colors.black
+                                          : Colors.white,
+                                    )
+                                  : null,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 背景透明度
+                      Row(
+                        children: [
+                          const Text('背景透明度',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          const Spacer(),
+                          Text(
+                            '${(playerProvider.lyricBackgroundOpacity * 100).round()}%',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: playerProvider.lyricBackgroundOpacity,
+                        min: 0.0,
+                        max: 1.0,
+                        divisions: 20,
+                        onChanged: (value) {
+                          playerProvider.setLyricBackgroundOpacity(value);
+                          setSheetState(() {});
+                        },
+                      ),
+
+                      // 圆角
+                      Row(
+                        children: [
+                          const Text('圆角',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          const Spacer(),
+                          Text(
+                            '${playerProvider.lyricCornerRadius.round()}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: playerProvider.lyricCornerRadius,
+                        min: 0.0,
+                        max: 40.0,
+                        divisions: 40,
+                        onChanged: (value) {
+                          playerProvider.setLyricCornerRadius(value);
+                          setSheetState(() {});
+                        },
+                      ),
+
+                      // 字号
+                      Row(
+                        children: [
+                          const Text('字号',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          const Spacer(),
+                          Text(
+                            '${playerProvider.lyricFontSize.round()}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: playerProvider.lyricFontSize,
+                        min: 12.0,
+                        max: 48.0,
+                        divisions: 36,
+                        onChanged: (value) {
+                          playerProvider.setLyricFontSize(value);
+                          setSheetState(() {});
+                        },
+                      ),
+
+                      const SizedBox(height: 8),
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            playerProvider.setLyricColor(Colors.white);
+                            playerProvider.setLyricBackgroundOpacity(0.7);
+                            playerProvider.setLyricCornerRadius(16);
+                            playerProvider.setLyricFontSize(24);
+                            setSheetState(() {});
+                          },
+                          child: const Text('恢复默认'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showLicenseDialog(BuildContext context) {
