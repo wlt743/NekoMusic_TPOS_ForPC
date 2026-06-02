@@ -1,7 +1,7 @@
 name: neko_music
 description: Neko云音乐客户端 - 轻量、自定义主题、桌面歌词
 publish_to: 'none'
-version: 2.0.0
+version: 2.0.1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
