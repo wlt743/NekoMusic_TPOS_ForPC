@@ -15,15 +15,15 @@ permissions:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: neko_music
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.0
 
       - name: Install Linux build dependencies
+        working-directory: neko_music
         run: |
           sudo apt-get update
           # Flutter Linux 桌面工具链 + media_kit(libmpv) 运行时依赖
@@ -45,6 +45,7 @@ jobs:
         run: flutter config --enable-linux-desktop
 
       - name: Generate linux platform files
+        working-directory: neko_music
         run: |
           # 仓库未包含 linux/ 工程目录，这里按需生成
           if [ ! -d linux ]; then
@@ -52,12 +53,15 @@ jobs:
           fi
 
       - name: Get dependencies
+        working-directory: neko_music
         run: flutter pub get
 
       - name: Build Linux release
+        working-directory: neko_music
         run: flutter build linux --release
 
       - name: Package artifact
+        working-directory: neko_music
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:\s*//' | tr -d '[:space:]')
           BUNDLE_DIR=build/linux/x64/release/bundle
@@ -78,5 +82,3 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.ARTIFACT_PATH }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
