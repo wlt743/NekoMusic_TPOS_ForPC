@@ -7,7 +7,7 @@ import '../models/netease_import.dart';
 
 class ApiService {
   static const String baseUrl = 'https://music.cnmsb.xin';
-  
+
   late final Dio _dio;
   String? _token;
 
@@ -221,7 +221,8 @@ class ApiService {
     return null;
   }
 
-  Future<bool> updatePlaylist(int id, String name, {String? description}) async {
+  Future<bool> updatePlaylist(int id, String name,
+      {String? description}) async {
     final response = await _dio.post('/api/user/playlist/update', data: {
       'id': id,
       'name': name,
@@ -254,7 +255,8 @@ class ApiService {
     return response.data['success'] == true;
   }
 
-  Future<bool> removeMusicFromPlaylist(int playlistId, List<int> musicIds) async {
+  Future<bool> removeMusicFromPlaylist(
+      int playlistId, List<int> musicIds) async {
     final response = await _dio.post('/api/user/playlist/music/remove', data: {
       'playlistId': playlistId,
       'musicIds': musicIds,
@@ -281,7 +283,8 @@ class ApiService {
   }
 
   Future<bool> unfavoritePlaylist(int playlistId) async {
-    final response = await _dio.delete('/api/user/favorite-playlists/$playlistId');
+    final response =
+        await _dio.delete('/api/user/favorite-playlists/$playlistId');
     return response.data['success'] == true;
   }
 
@@ -320,13 +323,37 @@ class ApiService {
     return null;
   }
 
+  /// 从分享文本或纯 ID 中解析 QQ 音乐歌单 ID。
+  /// 支持：纯数字、disstid=、id=、playlist/{id}、songlist/{id} 等格式。
+  static String? parseQqMusicPlaylistId(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+
+    if (RegExp(r'^[A-Za-z0-9]+$').hasMatch(trimmed)) return trimmed;
+
+    final patterns = <RegExp>[
+      RegExp(r'[?&]disstid=([A-Za-z0-9]+)', caseSensitive: false),
+      RegExp(r'[?&]id=([A-Za-z0-9]+)', caseSensitive: false),
+      RegExp(r'playlist/([A-Za-z0-9]+)', caseSensitive: false),
+      RegExp(r'songlist/([A-Za-z0-9]+)', caseSensitive: false),
+      RegExp(r'taoge\.html.*?[?&]id=([A-Za-z0-9]+)', caseSensitive: false),
+    ];
+    for (final p in patterns) {
+      final m = p.firstMatch(trimmed);
+      if (m != null) return m.group(1);
+    }
+    return null;
+  }
+
   /// 判断响应体是否为「人机验证 / WAF 拦截」页面（而非正常 JSON）。
   /// 服务端套了阿里云 WAF，短时间内请求过于频繁时会返回一段 HTML 验证页，
   /// 此时不能误报「歌单不存在」，而应提示用户稍后再试。
   bool _looksLikeWafChallenge(dynamic data) {
     if (data is String) {
       final s = data.trimLeft().toLowerCase();
-      if (s.startsWith('<!doctype') || s.startsWith('<html') || s.contains('<meta')) {
+      if (s.startsWith('<!doctype') ||
+          s.startsWith('<html') ||
+          s.contains('<meta')) {
         return true;
       }
       if (s.contains('captcha') || s.contains('阿里云') || s.contains('验证您是真人')) {
@@ -404,9 +431,8 @@ class ApiService {
 
     final code = (data['code'] as num?)?.toInt() ?? -1;
     if (code != 200) {
-      final msg = (data['message'] as String?) ??
-          (data['msg'] as String?) ??
-          '歌单不存在';
+      final msg =
+          (data['message'] as String?) ?? (data['msg'] as String?) ?? '歌单不存在';
       throw NeteaseImportException(msg.isEmpty ? '歌单不存在' : msg);
     }
 
@@ -419,6 +445,133 @@ class ApiService {
       Map<String, dynamic>.from(playlist),
       fallbackId: playlistId,
     );
+  }
+
+  /// 通过 Rain120/qq-music-api 兼容服务获取 QQ 音乐歌单详情。
+  /// 对应端点：GET /loser1/getSongListDetail?disstid={playlistId}
+  Future<QqMusicPlaylistInfo> fetchQqMusicPlaylist(
+    String playlistId, {
+    int maxRetries = 2,
+  }) async {
+    final trimmedId = playlistId.trim();
+    if (trimmedId.isEmpty) {
+      throw NeteaseImportException('无法解析歌单链接或 ID，请检查输入');
+    }
+
+    dynamic data;
+    var hitWaf = false;
+
+    for (var attempt = 0; attempt <= maxRetries; attempt++) {
+      Response response;
+      try {
+        response = await _dio.get(
+          '/loser1/getSongListDetail',
+          queryParameters: {'disstid': trimmedId},
+          options: Options(
+            receiveTimeout: const Duration(seconds: 120),
+            headers: {'Accept': 'application/json'},
+            responseType: ResponseType.json,
+          ),
+        );
+      } catch (e) {
+        if (attempt < maxRetries) {
+          await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
+          continue;
+        }
+        throw NeteaseImportException('网络错误，获取歌单失败，请稍后重试');
+      }
+
+      final body = response.data;
+      if (_looksLikeWafChallenge(body)) {
+        hitWaf = true;
+        if (attempt < maxRetries) {
+          await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
+          continue;
+        }
+        break;
+      }
+
+      if (body is String) {
+        try {
+          data = jsonDecode(body);
+        } catch (_) {
+          data = null;
+        }
+      } else {
+        data = body;
+      }
+      break;
+    }
+
+    if (hitWaf && data == null) {
+      throw NeteaseImportException('请求被服务端的人机验证拦截，请稍后重试');
+    }
+
+    final root = _asStringKeyMap(data);
+    if (root == null) {
+      throw NeteaseImportException('歌单不存在');
+    }
+
+    final code = (root['code'] as num?)?.toInt();
+    if (code != null && code != 0 && code != 200) {
+      final msg = (root['message'] as String?) ??
+          (root['msg'] as String?) ??
+          (root['error'] as String?) ??
+          '歌单不存在';
+      throw NeteaseImportException(msg.isEmpty ? '歌单不存在' : msg);
+    }
+
+    final playlist = _findQqPlaylistMap(root);
+    if (playlist == null) {
+      throw NeteaseImportException('歌单不存在');
+    }
+
+    return QqMusicPlaylistInfo.fromQqJson(
+      playlist,
+      fallbackId: trimmedId,
+    );
+  }
+
+  Map<String, dynamic>? _asStringKeyMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return null;
+  }
+
+  Map<String, dynamic>? _firstMapInList(dynamic value) {
+    if (value is! List || value.isEmpty) return null;
+    for (final item in value) {
+      final map = _asStringKeyMap(item);
+      if (map != null) return map;
+    }
+    return null;
+  }
+
+  Map<String, dynamic>? _findQqPlaylistMap(Map<String, dynamic> root) {
+    if (root['songlist'] is List ||
+        root['songList'] is List ||
+        root['tracks'] is List ||
+        root['songs'] is List) {
+      return root;
+    }
+
+    final direct = _firstMapInList(root['cdlist']) ??
+        _asStringKeyMap(root['data']) ??
+        _asStringKeyMap(root['response']) ??
+        _asStringKeyMap(root['result']);
+    if (direct == null) return null;
+
+    if (direct['songlist'] is List ||
+        direct['songList'] is List ||
+        direct['tracks'] is List ||
+        direct['songs'] is List) {
+      return direct;
+    }
+
+    return _firstMapInList(direct['cdlist']) ??
+        _firstMapInList(direct['list']) ??
+        _asStringKeyMap(direct['playlist']) ??
+        _asStringKeyMap(direct['dirinfo']);
   }
 
   /// 批量搜索匹配歌曲。

@@ -6,7 +6,27 @@ import '../models/playlist.dart';
 import '../services/api_service.dart';
 import '../providers/user_provider.dart';
 
-/// 网易云歌单导入对话框
+enum PlaylistImportSource {
+  netease,
+  qqMusic,
+}
+
+extension _PlaylistImportSourceText on PlaylistImportSource {
+  String get displayName {
+    switch (this) {
+      case PlaylistImportSource.netease:
+        return '网易云';
+      case PlaylistImportSource.qqMusic:
+        return 'QQ 音乐';
+    }
+  }
+
+  String get title => '导入$displayName歌单';
+
+  String get inputDescription => '输入$displayName歌单链接或 ID，将歌曲匹配并导入到本地歌单';
+}
+
+/// 外部歌单导入对话框
 ///
 /// 复刻自 NekoMusicForPc 的 NeteaseImportDialog：
 /// 1. 输入歌单链接/ID → 拉取歌单详情
@@ -15,14 +35,22 @@ import '../providers/user_provider.dart';
 ///
 /// 导入完成后通过 Navigator.pop 返回 true，调用方可据此刷新列表。
 class NeteaseImportDialog extends StatefulWidget {
-  const NeteaseImportDialog({super.key});
+  final PlaylistImportSource source;
+
+  const NeteaseImportDialog({
+    super.key,
+    this.source = PlaylistImportSource.netease,
+  });
 
   /// 便捷入口：弹出对话框，返回是否有歌曲成功导入。
-  static Future<bool> show(BuildContext context) async {
+  static Future<bool> show(
+    BuildContext context, {
+    PlaylistImportSource source = PlaylistImportSource.netease,
+  }) async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const NeteaseImportDialog(),
+      builder: (_) => NeteaseImportDialog(source: source),
     );
     return result == true;
   }
@@ -39,7 +67,7 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
   final _inputController = TextEditingController();
   final _newPlaylistController = TextEditingController();
 
-  NeteasePlaylistInfo? _playlist;
+  Object? _playlist;
   List<Playlist> _userPlaylists = [];
   int _targetId = _targetFavorites;
 
@@ -61,11 +89,59 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
     setState(() => _errorText = msg);
   }
 
+  String get _playlistName {
+    final playlist = _playlist;
+    if (playlist is NeteasePlaylistInfo) return playlist.name;
+    if (playlist is QqMusicPlaylistInfo) return playlist.name;
+    return '';
+  }
+
+  int get _playlistTrackCount {
+    final playlist = _playlist;
+    if (playlist is NeteasePlaylistInfo) {
+      return playlist.trackCount > 0
+          ? playlist.trackCount
+          : playlist.tracks.length;
+    }
+    if (playlist is QqMusicPlaylistInfo) {
+      return playlist.trackCount > 0
+          ? playlist.trackCount
+          : playlist.tracks.length;
+    }
+    return 0;
+  }
+
+  List<NeteaseSearchItem> get _searchItems {
+    final playlist = _playlist;
+    if (playlist is NeteasePlaylistInfo) {
+      return playlist.tracks
+          .map((t) => NeteaseSearchItem(title: t.name, artist: t.artist))
+          .toList();
+    }
+    if (playlist is QqMusicPlaylistInfo) {
+      return playlist.tracks
+          .map((t) => NeteaseSearchItem(title: t.name, artist: t.artist))
+          .toList();
+    }
+    return const [];
+  }
+
   Future<void> _fetchPlaylist() async {
     final input = _inputController.text;
-    final idStr = ApiService.parseNeteasePlaylistId(input);
-    final id = int.tryParse(idStr ?? '');
-    if (id == null || id <= 0) {
+    final api = context.read<ApiService>();
+    final userProvider = context.read<UserProvider>();
+
+    Object playlist;
+    String playlistName;
+    bool isEmpty;
+
+    final isQqMusic = widget.source == PlaylistImportSource.qqMusic;
+    final idStr = isQqMusic
+        ? ApiService.parseQqMusicPlaylistId(input)
+        : ApiService.parseNeteasePlaylistId(input);
+    final neteaseId = int.tryParse(idStr ?? '');
+    if (idStr == null ||
+        (!isQqMusic && (neteaseId == null || neteaseId <= 0))) {
       _setError('无法解析歌单链接或 ID，请检查输入');
       return;
     }
@@ -75,12 +151,20 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
       _fetching = true;
     });
 
-    final api = context.read<ApiService>();
-    final userProvider = context.read<UserProvider>();
-
     try {
-      final playlist = await api.fetchNeteasePlaylist(id);
-      if (playlist.tracks.isEmpty) {
+      if (isQqMusic) {
+        final qqPlaylist = await api.fetchQqMusicPlaylist(idStr);
+        playlist = qqPlaylist;
+        playlistName = qqPlaylist.name;
+        isEmpty = qqPlaylist.tracks.isEmpty;
+      } else {
+        final neteasePlaylist = await api.fetchNeteasePlaylist(neteaseId!);
+        playlist = neteasePlaylist;
+        playlistName = neteasePlaylist.name;
+        isEmpty = neteasePlaylist.tracks.isEmpty;
+      }
+
+      if (isEmpty) {
         _setError('歌单为空');
         return;
       }
@@ -99,7 +183,7 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
         _playlist = playlist;
         _userPlaylists = playlists;
         _targetId = _targetFavorites;
-        _newPlaylistController.text = playlist.name;
+        _newPlaylistController.text = playlistName;
       });
     } on NeteaseImportException catch (e) {
       _setError(e.message);
@@ -112,7 +196,8 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
 
   Future<void> _startImport() async {
     final playlist = _playlist;
-    if (playlist == null || playlist.tracks.isEmpty) {
+    final searchItems = _searchItems;
+    if (playlist == null || searchItems.isEmpty) {
       _setError('没有可导入的歌曲');
       return;
     }
@@ -134,10 +219,6 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
 
     try {
       // 1. 批量搜索匹配
-      final searchItems = playlist.tracks
-          .map((t) => NeteaseSearchItem(title: t.name, artist: t.artist))
-          .toList();
-
       final searchResult = await api.batchSearchNeteaseMusic(
         searchItems,
         onProgress: (p) {
@@ -222,7 +303,7 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
     final hasPlaylist = _playlist != null;
 
     return AlertDialog(
-      title: const Text('导入网易云歌单'),
+      title: Text(widget.source.title),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
@@ -231,7 +312,7 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '输入网易云歌单链接或 ID，将歌曲匹配并导入到本地歌单',
+                widget.source.inputDescription,
                 style: TextStyle(
                   fontSize: 13,
                   color: colorScheme.onSurfaceVariant,
@@ -260,7 +341,8 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
-                    onPressed: (_fetching || _importing) ? null : _fetchPlaylist,
+                    onPressed:
+                        (_fetching || _importing) ? null : _fetchPlaylist,
                     child: _fetching
                         ? const SizedBox(
                             width: 18,
@@ -287,7 +369,7 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '歌单：${_playlist!.name}（共 ${_playlist!.trackCount > 0 ? _playlist!.trackCount : _playlist!.tracks.length} 首）',
+                          '歌单：$_playlistName（共 $_playlistTrackCount 首）',
                           style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -344,8 +426,7 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
                                       _newPlaylistController.text
                                           .trim()
                                           .isEmpty) {
-                                    _newPlaylistController.text =
-                                        _playlist?.name ?? '';
+                                    _newPlaylistController.text = _playlistName;
                                   }
                                 });
                               },
@@ -410,9 +491,8 @@ class _NeteaseImportDialogState extends State<NeteaseImportDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _importing
-              ? null
-              : () => Navigator.of(context).pop(_completed),
+          onPressed:
+              _importing ? null : () => Navigator.of(context).pop(_completed),
           child: Text(_completed ? '完成' : '关闭'),
         ),
         if (hasPlaylist && !_completed)

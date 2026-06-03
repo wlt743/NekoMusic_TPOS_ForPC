@@ -16,13 +16,14 @@ class LibraryPage extends StatefulWidget {
   State<LibraryPage> createState() => _LibraryPageState();
 }
 
-class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStateMixin {
+class _LibraryPageState extends State<LibraryPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   List<Music> _favorites = [];
   List<Playlist> _playlists = [];
   List<Music> _currentPlaylist = [];
-  
+
   bool _isLoading = false;
 
   @override
@@ -41,25 +42,25 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
   Future<void> _loadData() async {
     final userProvider = context.read<UserProvider>();
     if (!userProvider.isLoggedIn) return;
-    
+
     setState(() {
       _isLoading = true;
     });
 
     try {
       final apiService = context.read<ApiService>();
-      
+
       final results = await Future.wait([
         apiService.getFavorites(),
         apiService.getMyPlaylists(),
       ]);
-      
+
       setState(() {
         _favorites = results[0] as List<Music>;
         _playlists = results[1] as List<Playlist>;
         _isLoading = false;
       });
-      
+
       // 更新收藏状态
       final playerProvider = context.read<PlayerProvider>();
       playerProvider.setFavorites(_favorites.map((m) => m.id).toSet());
@@ -75,7 +76,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
     final colorScheme = Theme.of(context).colorScheme;
     final userProvider = context.watch<UserProvider>();
     final playerProvider = context.watch<PlayerProvider>();
-    
+
     if (!userProvider.isLoggedIn) {
       return Scaffold(
         appBar: AppBar(title: const Text('音乐库')),
@@ -105,7 +106,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
         ),
       );
     }
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('音乐库'),
@@ -145,7 +146,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
         subtitle: '点击歌曲旁的爱心收藏你喜欢的音乐',
       );
     }
-    
+
     return Column(
       children: [
         // 播放全部按钮
@@ -174,7 +175,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
             ],
           ),
         ),
-        
+
         Expanded(
           child: RefreshIndicator(
             onRefresh: _loadData,
@@ -203,33 +204,51 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
 
   Widget _buildPlaylistsTab() {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Column(
       children: [
-        // 创建歌单 / 导入网易云歌单按钮
+        // 创建歌单 / 导入外部歌单按钮
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _showCreatePlaylistDialog,
-                  icon: const Icon(Icons.add),
-                  label: const Text('创建歌单'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: _showNeteaseImportDialog,
-                  icon: const Icon(Icons.cloud_download),
-                  label: const Text('导入网易云'),
-                ),
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final buttonWidth = constraints.maxWidth >= 420
+                  ? (constraints.maxWidth - 24) / 3
+                  : constraints.maxWidth;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  SizedBox(
+                    width: buttonWidth,
+                    child: OutlinedButton.icon(
+                      onPressed: _showCreatePlaylistDialog,
+                      icon: const Icon(Icons.add),
+                      label: const Text('创建歌单'),
+                    ),
+                  ),
+                  SizedBox(
+                    width: buttonWidth,
+                    child: FilledButton.tonalIcon(
+                      onPressed: _showNeteaseImportDialog,
+                      icon: const Icon(Icons.cloud_download),
+                      label: const Text('导入网易云'),
+                    ),
+                  ),
+                  SizedBox(
+                    width: buttonWidth,
+                    child: FilledButton.tonalIcon(
+                      onPressed: _showQqMusicImportDialog,
+                      icon: const Icon(Icons.library_music),
+                      label: const Text('导入QQ'),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
-        
+
         Expanded(
           child: _playlists.isEmpty
               ? _buildEmptyState(
@@ -245,7 +264,8 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
                     itemBuilder: (context, index) {
                       final playlist = _playlists[index];
                       return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
                         child: ListTile(
                           leading: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
@@ -333,7 +353,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
     final playerProvider = context.watch<PlayerProvider>();
     final queue = playerProvider.playlist;
     final currentIndex = playerProvider.currentIndex;
-    
+
     if (queue.isEmpty) {
       return _buildEmptyState(
         icon: Icons.queue_music,
@@ -341,7 +361,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
         subtitle: '播放音乐后会显示在这里',
       );
     }
-    
+
     return Column(
       children: [
         // 清空队列按钮
@@ -364,7 +384,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
             ],
           ),
         ),
-        
+
         Expanded(
           child: ReorderableListView.builder(
             padding: const EdgeInsets.only(bottom: 100),
@@ -375,7 +395,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
             itemBuilder: (context, index) {
               final music = queue[index];
               final isPlaying = index == currentIndex;
-              
+
               return MusicListTile(
                 key: ValueKey(music.id),
                 music: music,
@@ -404,7 +424,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
     required String subtitle,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -436,7 +456,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
   Future<void> _toggleFavorite(Music music) async {
     final apiService = context.read<ApiService>();
     final playerProvider = context.read<PlayerProvider>();
-    
+
     try {
       if (playerProvider.isFavorite(music.id)) {
         await apiService.removeFavorite(music.id);
@@ -460,7 +480,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
   Future<void> _playPlaylist(Playlist playlist) async {
     final apiService = context.read<ApiService>();
     final playerProvider = context.read<PlayerProvider>();
-    
+
     try {
       final musicList = await apiService.getPlaylistMusic(playlist.id);
       if (musicList.isNotEmpty) {
@@ -478,7 +498,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
   Future<void> _showCreatePlaylistDialog() async {
     final nameController = TextEditingController();
     final descController = TextEditingController();
-    
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -517,7 +537,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
         ],
       ),
     );
-    
+
     if (result == true && nameController.text.trim().isNotEmpty) {
       try {
         final apiService = context.read<ApiService>();
@@ -550,10 +570,21 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
     }
   }
 
+  Future<void> _showQqMusicImportDialog() async {
+    final imported = await NeteaseImportDialog.show(
+      context,
+      source: PlaylistImportSource.qqMusic,
+    );
+    if (imported) {
+      _loadData();
+    }
+  }
+
   Future<void> _showEditPlaylistDialog(Playlist playlist) async {
     final nameController = TextEditingController(text: playlist.name);
-    final descController = TextEditingController(text: playlist.description ?? '');
-    
+    final descController =
+        TextEditingController(text: playlist.description ?? '');
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -589,7 +620,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
         ],
       ),
     );
-    
+
     if (result == true && nameController.text.trim().isNotEmpty) {
       try {
         final apiService = context.read<ApiService>();
@@ -630,7 +661,7 @@ class _LibraryPageState extends State<LibraryPage> with SingleTickerProviderStat
         ],
       ),
     );
-    
+
     if (confirm == true) {
       try {
         final apiService = context.read<ApiService>();
